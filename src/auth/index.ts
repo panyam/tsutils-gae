@@ -1,10 +1,10 @@
+import TSU from "@panyam/tsutils";
 import express = require("express");
-import { StringMap } from "../types";
 import { Datastore } from "./datastore";
-import { AuthFlowCallback, AuthFlow, User, Channel } from "./models";
+import { AuthFlowCallback, AuthFlow } from "./models";
 
 export function initAuth2App(app: express.Application): void {
-  const authFlows = {} as StringMap<AuthFlowCallback>;
+  const authFlows = {} as TSU.StringMap<AuthFlowCallback>;
   app.set("authFlows", authFlows);
   authFlows["login"] = loginAuthFlowHandler;
   authFlows["redirect"] = redirectAuthFlowHandler;

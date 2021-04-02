@@ -1,9 +1,9 @@
-import { Timestamp } from "../types";
+import TSU from "@panyam/tsutils";
 
 export class BaseEntity {
   isActive: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: TSU.Timestamp;
+  updatedAt: TSU.Timestamp;
 
   constructor(config?: any) {
     config = config || {};

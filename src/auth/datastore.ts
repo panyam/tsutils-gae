@@ -1,5 +1,5 @@
+import TSU from "@panyam/tsutils";
 import { Datastore as BaseDatastore } from "../dal/datastore";
-import { Nullable } from "../types";
 import { User, Channel, AuthFlow } from "./models";
 
 const USER_KIND = "User";
@@ -24,12 +24,12 @@ export class Datastore extends BaseDatastore {
     return [];
   }
 
-  async getChannelByKey(key: string): Promise<Nullable<Channel>> {
+  async getChannelByKey(key: string): Promise<TSU.Nullable<Channel>> {
     const [provider, loginId] = key.split(":");
     return this.getChannel(provider, loginId);
   }
 
-  async getChannel(provider: string, loginId: string): Promise<Nullable<Channel>> {
+  async getChannel(provider: string, loginId: string): Promise<TSU.Nullable<Channel>> {
     const query = this.gcds.createQuery(CHANNEL_KIND).filter("provider", provider).filter("loginId", loginId);
     const results = await this.gcds.runQuery(query);
     if (results && results.length > 0 && results[0].length > 0) {
@@ -39,7 +39,7 @@ export class Datastore extends BaseDatastore {
     return null;
   }
 
-  async getUserByChannel(channelKey: string): Promise<Nullable<User>> {
+  async getUserByChannel(channelKey: string): Promise<TSU.Nullable<User>> {
     const query = this.gcds.createQuery(USER_KIND).filter("channelKey", channelKey);
     const results = await this.gcds.runQuery(query);
     if (results && results.length > 0 && results[0].length > 0) {
@@ -49,7 +49,7 @@ export class Datastore extends BaseDatastore {
     return null;
   }
 
-  async getUserById(userId: string): Promise<Nullable<User>> {
+  async getUserById(userId: string): Promise<TSU.Nullable<User>> {
     const query = this.gcds.createQuery(USER_KIND).filter("id", userId);
     const results = await this.gcds.runQuery(query);
     if (results && results.length > 0 && results[0].length > 0) {
@@ -59,7 +59,7 @@ export class Datastore extends BaseDatastore {
     return null;
   }
 
-  async getAuthFlowById(authFlowId: string): Promise<Nullable<AuthFlow>> {
+  async getAuthFlowById(authFlowId: string): Promise<TSU.Nullable<AuthFlow>> {
     const query = this.gcds.createQuery(AUTH_FLOW_KIND).filter("id", authFlowId);
     const results = await this.gcds.runQuery(query);
     if (results && results.length > 0 && results[0].length > 0) {
@@ -225,7 +225,7 @@ export class Datastore extends BaseDatastore {
   async ensureChannel(provider: string, loginId: string, params?: any): Promise<[Channel, boolean]> {
     // get channel if exists
     // See if a channel exist - create if it does not
-    let channel: Nullable<Channel> = await this.getChannel(provider, loginId);
+    let channel: TSU.Nullable<Channel> = await this.getChannel(provider, loginId);
     const newCreated = channel == null;
     if (channel == null) {
       channel = new Channel(params);

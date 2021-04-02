@@ -1,4 +1,4 @@
-import { Timestamp, Nullable } from "../types";
+import TSU from "@panyam/tsutils";
 import { BaseEntity } from "../dal/models";
 
 export class CallbackRequest {
@@ -51,7 +51,7 @@ export class AuthFlow extends BaseEntity {
   provider: string;
 
   // When this Auth session expires;
-  expiresIn: Timestamp;
+  expiresIn: TSU.Timestamp;
 
   // Call back URL for where the session needs to endup on success
   // callback: CallbackRequest;
@@ -123,7 +123,7 @@ export class Channel extends BaseEntity {
   /**
    * When does this channel expire and needs another login/auth.
    */
-  expiresIn: Nullable<Timestamp>;
+  expiresIn: TSU.Nullable<TSU.Timestamp>;
 
   constructor(config?: any) {
     super((config = config || {}));

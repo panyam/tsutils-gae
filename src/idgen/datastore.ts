@@ -1,5 +1,5 @@
+import TSU from "@panyam/tsutils";
 import { Datastore as BaseDatastore } from "../dal/datastore";
-import { Nullable } from "../types";
 import { ID } from "./models";
 
 export class Datastore extends BaseDatastore {
@@ -33,7 +33,7 @@ export class Datastore extends BaseDatastore {
     return await this.saveId(res);
   }
 
-  async getID(id: string): Promise<Nullable<ID>> {
+  async getID(id: string): Promise<TSU.Nullable<ID>> {
     const query = this.gcds.createQuery(this.tableName).filter("id", id);
     const results = await this.gcds.runQuery(query);
     if (results && results.length > 0 && results[0].length > 0) {

@@ -1,4 +1,4 @@
-import { Nullable } from "../types";
+import TSU from "@panyam/tsutils";
 import { Datastore } from "./datastore";
 import { AuthFlowCallback, AuthFlow, User } from "./models";
 const express = require("express");
@@ -53,8 +53,8 @@ export type ProfileToIdFunc = (profile: any) => string;
 
 export function defaultVerifyCallback(params?: any): any {
   params = params || {};
-  const profileToId: Nullable<ProfileToIdFunc> = params.profileToId || null;
-  // const profileToUser: Nullable<ProfileToUserFunc> = params.profileToUser || null;
+  const profileToId: TSU.Nullable<ProfileToIdFunc> = params.profileToId || null;
+  // const profileToUser: TSU.Nullable<ProfileToUserFunc> = params.profileToUser || null;
   const datastore = Datastore.getInstance();
   return async function (req: any, accessToken: string, refreshToken: string, params: any, profile: any, done: any) {
     try {
@@ -95,7 +95,7 @@ export function createProviderRouter(provider: string, params: any = {}): any {
     wrapAsync(async (req: any, res: any, next: any) => {
       const authFlowId = req.query["authFlow"] || null;
       const callbackURL = req.query["callbackURL"] || "/";
-      let authFlow: Nullable<AuthFlow> = null;
+      let authFlow: TSU.Nullable<AuthFlow> = null;
       if (authFlowId == null) {
         // create a new session if it was not provided
         authFlow = await datastore.saveAuthFlow(
