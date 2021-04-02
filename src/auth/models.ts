@@ -41,8 +41,6 @@ export class CallbackRequest {
   }
 }
 
-export type AuthFlowCallback = (authFlow: AuthFlow, req: any, res: any, next: any) => void;
-
 export class AuthFlow extends BaseEntity {
   // A unique Auth Session ID
   id: string;

@@ -1,6 +1,7 @@
 import TSU from "@panyam/tsutils";
 import { Datastore } from "./datastore";
-import { AuthFlowCallback, AuthFlow, User } from "./models";
+import { AuthFlow, User } from "./models";
+import { AuthFlowCallback, ProfileToIdFunc } from "./types";
 const express = require("express");
 const passport = require("passport");
 const request = require("request");
@@ -48,7 +49,6 @@ export function ensureLogin() {
   });
 }
 
-export type ProfileToIdFunc = (profile: any) => string;
 // export type ProfileToUserFunc = (profile: any) => string;
 
 export function defaultVerifyCallback(params?: any): any {
