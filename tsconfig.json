@@ -1,20 +1,21 @@
 {
   "exclude": [
     "node_modules",
-    "dist"
+    "lib",
+    "./src/**/*.spec.ts"
   ],
   "compilerOptions": {
     "allowJs": false,
     "declaration": true,
+    "moduleResolution": "node",
     "downlevelIteration": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
-    "lib": ["es2019", "dom", "dom.Iterable"],
-    "module": "commonjs",  
+    "module": "CommonJS",
+    "outDir": "lib",
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
-    "outDir": "dist",
     "plugins": [ { "name": "typescript-tslint-plugin" } ],
     "removeComments": true,
     "skipLibCheck": true,
