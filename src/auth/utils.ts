@@ -4,7 +4,6 @@ import { AuthFlow, User } from "./models";
 import { AuthFlowCallback, ProfileToIdFunc } from "./types";
 const express = require("express");
 const passport = require("passport");
-const request = require("request");
 
 /**
  *
