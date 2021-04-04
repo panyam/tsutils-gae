@@ -1,6 +1,6 @@
-import { BaseEntity } from "../dal/models";
+import TSU from "@panyam/tsutils";
 
-export class ID extends BaseEntity {
+export class ID extends TSU.DAL.BaseEntity {
   // A unique ID
   // A unique ID for this blob.  This
   // MUST be provided by the USER so that

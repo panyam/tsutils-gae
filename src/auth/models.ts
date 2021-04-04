@@ -1,5 +1,4 @@
 import TSU from "@panyam/tsutils";
-import { BaseEntity } from "../dal/models";
 
 export class CallbackRequest {
   hostname: string;
@@ -41,7 +40,7 @@ export class CallbackRequest {
   }
 }
 
-export class AuthFlow extends BaseEntity {
+export class AuthFlow extends TSU.DAL.BaseEntity {
   // A unique Auth Session ID
   id: string;
 
@@ -78,7 +77,7 @@ export class AuthFlow extends BaseEntity {
   }
 }
 
-export class User extends BaseEntity {
+export class User extends TSU.DAL.BaseEntity {
   id: string;
   name: string;
   email: string;
@@ -104,7 +103,7 @@ export class User extends BaseEntity {
   }
 }
 
-export class Channel extends BaseEntity {
+export class Channel extends TSU.DAL.BaseEntity {
   provider: string;
   loginId: string;
 
