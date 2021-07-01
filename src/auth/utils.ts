@@ -144,7 +144,7 @@ export function createProviderRouter(provider: string, params: any = {}): any {
   return router;
 }
 
-export async function continueAuthFlow(req: any, res: any, next: any) {
+export async function continueAuthFlow(req: any, res: any, next: any): Promise<void> {
   // Successful authentication, redirect success.
   const datastore = Datastore.getInstance();
   const authFlowId = req.query["state"].trim();
