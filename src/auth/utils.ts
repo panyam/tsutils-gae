@@ -28,7 +28,10 @@ const passport = require("passport");
  *     other requests going forward.
  */
 
-const wrapAsync = (fn: any) => (...args: any[]) => Promise.resolve(fn(...args)).catch(args[2]);
+const wrapAsync =
+  (fn: any) =>
+  (...args: any[]) =>
+    Promise.resolve(fn(...args)).catch(args[2]);
 
 /**
  * Redirects users to login screen of they are not logged in
