@@ -1,6 +1,6 @@
 {
   "name": "@panyam/tsutils-gae",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "author": "Sriram Panyam",
   "description": "Set of utilities for GAE",
   "homepage": "https://github.com/panyam/tsutils-gae#readme",
