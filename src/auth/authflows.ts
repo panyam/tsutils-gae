@@ -1,4 +1,4 @@
-import TSU from "@panyam/tsutils";
+import * as TSU from "@panyam/tsutils";
 import express = require("express");
 import { Datastore } from "./datastore";
 import { AuthFlow } from "./models";

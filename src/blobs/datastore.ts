@@ -1,4 +1,3 @@
-import TSU from "@panyam/tsutils";
 import { Datastore as BaseDatastore } from "../dal/datastore";
 import { Blob } from "./models";
 
@@ -11,7 +10,7 @@ export class Datastore extends BaseDatastore {
     return Datastore.instance;
   }
 
-  async getBlobById(blobId: string): Promise<TSU.Nullable<Blob>> {
+  async getBlobById(blobId: string): Promise<Blob | null> {
     const query = this.gcds.createQuery(BLOB_KIND).filter("id", blobId);
     const results = await this.gcds.runQuery(query);
     if (results && results.length > 0 && results[0].length > 0) {

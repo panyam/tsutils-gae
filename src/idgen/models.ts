@@ -1,4 +1,4 @@
-import TSU from "@panyam/tsutils";
+import * as TSU from "@panyam/tsutils";
 
 export class ID extends TSU.DAL.BaseEntity {
   // A unique ID

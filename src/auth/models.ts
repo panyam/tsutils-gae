@@ -1,4 +1,4 @@
-import TSU from "@panyam/tsutils";
+import * as TSU from "@panyam/tsutils";
 
 export class CallbackRequest {
   hostname: string;
@@ -120,7 +120,7 @@ export class Channel extends TSU.DAL.BaseEntity {
   /**
    * When does this channel expire and needs another login/auth.
    */
-  expiresIn: TSU.Nullable<TSU.Timestamp>;
+  expiresIn: TSU.Timestamp | null;
 
   constructor(config?: any) {
     super((config = config || {}));
