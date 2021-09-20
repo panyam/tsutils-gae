@@ -61,7 +61,7 @@
     "@types/express": "^4.17.12",
     "@types/jest": "^26.0.23",
     "@types/jsdom": "^16.2.12",
-    "@types/node": "^15.14.0",
+    "@types/node": "^16.9.4",
     "@types/passport": "^1.0.6",
     "@types/passport-facebook": "^2.1.10",
     "@types/passport-google-oauth": "^1.0.41",
