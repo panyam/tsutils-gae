@@ -10,8 +10,8 @@ const passport = require("passport");
  *
  * 1. User Visits  /xyz
  * 2. Request handler for /xyz kicks off an auth if not logged in (more in step 10).
- * 3. Handler(/xyz) redirects to /auth/login?callbackURL=calbackURL
- * 4. User selects one of the login types /auth/<provider>/login?callbackURL=
+ * 3. Handler(/xyz) redirects to /auth/login?callbackURL=<callbackURL>
+ * 4. User selects one of the login types /auth/<provider>/login?callbackURL=<callbackURL>
  * 5. Login handler creates a new authFlow instance and saves it in the
  *    session.  This will be used later.  In (3) instead of a callbackURL
  *    an authFlow can also be provided in which a new AuthFlow wont be
@@ -38,11 +38,16 @@ const wrapAsync =
  * @param res Response object
  * @param next next function
  */
-export function ensureLogin() {
+export function ensureLogin(configs?: any): (req: any, res: any, next: any) => void {
+  const redirectURL: (req: any) => string | string = configs.redirectURL || null;
   return wrapAsync(async (req: any, res: any, next: any) => {
     if (!req.session.loggedInUser) {
       // Redirect to a login if user not logged in
-      const redirUrl = `/auth/login?callbackURL=${encodeURIComponent(req.originalUrl)}`;
+      let redirUrl = `/${configs.redirectURLPrefix || "auth"}/login?callbackURL=${encodeURIComponent(req.originalUrl)}`;
+      if (redirectURL) {
+        if (typeof redirectURL == "string") redirUrl = redirectURL;
+        else redirUrl = redirectURL(req);
+      }
       res.redirect(redirUrl);
     } else {
       next();
@@ -50,23 +55,24 @@ export function ensureLogin() {
   });
 }
 
-// export type ProfileToUserFunc = (profile: any) => string;
-
-export function defaultVerifyCallback(params?: any): any {
-  params = params || {};
-  const profileToId: ProfileToIdFunc | null = params.profileToId || null;
-  // const profileToUser: TSU.Nullable<ProfileToUserFunc> = params.profileToUser || null;
+/**
+ * This method creates a callback function that passport accepts for verifying a callback from the login provider.
+ */
+export function defaultVerifyCallback(configs?: any): any {
+  configs = configs || {};
+  const profileToId: ProfileToIdFunc | null = configs.profileToId || null;
   const datastore = Datastore.getInstance();
   return async function (req: any, accessToken: string, refreshToken: string, params: any, profile: any, done: any) {
     try {
       console.log("Verify Callback, Profile: ", req, profile, params);
-      // ensure channel is created
+      // the ID here is specific to what is returned by the channel provider
       let id = profile.id;
       if (profileToId != null) {
         id = profileToId(profile);
       }
       // const authFlow = await datastore.getAuthFlowById(authFlowId);
       // TODO - Use the authFlow.purpose to ensure loginUser is not lost
+      // ensure channel is created
       const [channel, newCreated] = await datastore.ensureChannel(profile.provider, id, {
         credentials: {
           accessToken: accessToken,
@@ -88,9 +94,17 @@ export async function kickOffAuth(authFlow: AuthFlow): Promise<string> {
   return `/auth/${authFlow.provider}/?authFlow=${authFlow.id}`;
 }
 
-export function createProviderRouter(provider: string, params: any = {}): any {
+/**
+ * A helper method to create an express router using the provider as the prefix,
+ * ie /<provider>/...
+ *
+ * Typically in the calling application under a common auth prefix (eg /auth/)
+ * differnet provider routers can be used eg /auth/google/, /auth/facebook/, /auth/github etc.
+ */
+export function createProviderRouter(provider: string, config: any = {}): any {
   const datastore = Datastore.getInstance();
   const router = express.Router();
+  const failureRedirectURL = config.failureRedirectURL || `/${config.authPrefix || "auth"}/${provider}/fail`;
   router.get(
     "/",
     wrapAsync(async (req: any, res: any, next: any) => {
@@ -119,7 +133,7 @@ export function createProviderRouter(provider: string, params: any = {}): any {
 
         // Kick off an auth we can have different kinds of auth
         passport.authenticate(provider, {
-          scope: params.scope,
+          scope: config.scope,
           state: `${authFlow.id}`,
         })(req, res, next);
       }
@@ -129,11 +143,11 @@ export function createProviderRouter(provider: string, params: any = {}): any {
   router.get(
     "/callback",
     passport.authenticate(provider, {
-      failureRedirect: `/auth/${provider}/fail`,
+      failureRedirect: failureRedirectURL,
     }),
     /*
     (...args: any[]) => {
-      const x = passport.authenticate(provider, { failureRedirect: `/auth/${provider}/fail` });
+      const x = passport.authenticate(provider, { failureRedirect: failureRedirectURL });
       return x(...args)
     },
     */
@@ -146,6 +160,14 @@ export function createProviderRouter(provider: string, params: any = {}): any {
   return router;
 }
 
+/**
+ * This method is called by passport once the callback from the auth provider has been successful.
+ * When the Authflow was created (via the router's starting URL), the Authflow has a top level
+ * handler name along with its parameters that are used as a way to indicate "what to do" after the
+ * auth flow is complete.  For example "login" handler's parameters are a callbackURL to go to.
+ *
+ * Other auth flows can be registered via authflows.authFlows dictionary in the client app.
+ */
 export async function continueAuthFlow(req: any, res: any, next: any): Promise<void> {
   // Successful authentication, redirect success.
   const datastore = Datastore.getInstance();
