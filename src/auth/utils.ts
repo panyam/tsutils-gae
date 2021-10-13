@@ -1,5 +1,5 @@
 import { Datastore } from "./datastore";
-import { AuthFlow, User } from "./models";
+import { AuthFlow } from "./models";
 import { AuthFlowCallback, ProfileToIdFunc } from "./types";
 const express = require("express");
 const passport = require("passport");
@@ -58,10 +58,9 @@ export function ensureLogin(configs?: any): (req: any, res: any, next: any) => v
 /**
  * This method creates a callback function that passport accepts for verifying a callback from the login provider.
  */
-export function defaultVerifyCallback(configs?: any): any {
+export function defaultVerifyCallback(datastore: Datastore, configs?: any): any {
   configs = configs || {};
   const profileToId: ProfileToIdFunc | null = configs.profileToId || null;
-  const datastore = Datastore.getInstance();
   return async function (req: any, accessToken: string, refreshToken: string, params: any, profile: any, done: any) {
     try {
       console.log("Verify Callback, Profile: ", req, profile, params);
@@ -88,8 +87,7 @@ export function defaultVerifyCallback(configs?: any): any {
   };
 }
 
-export async function kickOffAuth(authFlow: AuthFlow): Promise<string> {
-  const datastore = Datastore.getInstance();
+export async function kickOffAuth(datastore: Datastore, authFlow: AuthFlow): Promise<string> {
   authFlow = await datastore.saveAuthFlow(authFlow);
   return `/auth/${authFlow.provider}/?authFlow=${authFlow.id}`;
 }
@@ -101,8 +99,7 @@ export async function kickOffAuth(authFlow: AuthFlow): Promise<string> {
  * Typically in the calling application under a common auth prefix (eg /auth/)
  * differnet provider routers can be used eg /auth/google/, /auth/facebook/, /auth/github etc.
  */
-export function createProviderRouter(provider: string, config: any = {}): any {
-  const datastore = Datastore.getInstance();
+export function createProviderRouter(datastore: Datastore, provider: string, config: any = {}): any {
   const router = express.Router();
   const failureRedirectURL = config.failureRedirectURL || `/${config.authPrefix || "auth"}/${provider}/fail`;
   router.get(
@@ -151,7 +148,7 @@ export function createProviderRouter(provider: string, config: any = {}): any {
       return x(...args)
     },
     */
-    wrapAsync(continueAuthFlow),
+    wrapAsync(continueAuthFlow(datastore)),
   );
 
   router.get("/fail", (req: any, res: any) => {
@@ -168,21 +165,22 @@ export function createProviderRouter(provider: string, config: any = {}): any {
  *
  * Other auth flows can be registered via authflows.authFlows dictionary in the client app.
  */
-export async function continueAuthFlow(req: any, res: any, next: any): Promise<void> {
+export function continueAuthFlow(datastore: Datastore): (req: any, res: any, next: any) => Promise<void> {
   // Successful authentication, redirect success.
-  const datastore = Datastore.getInstance();
-  const authFlowId = req.query["state"].trim();
-  const authFlow = await datastore.getAuthFlowById(authFlowId);
+  return async (req: any, res: any, next: any): Promise<void> => {
+    const authFlowId = req.query["state"].trim();
+    const authFlow = await datastore.getAuthFlowById(authFlowId);
 
-  // We are done with the AuthFlow so clean it up
-  req.session.authFlowId = null;
+    // We are done with the AuthFlow so clean it up
+    req.session.authFlowId = null;
 
-  if (authFlow != null) {
-    const handler = req.app.get("authFlows")[authFlow.handlerName] as AuthFlowCallback;
-    if (handler != null) {
-      handler(authFlow, req, res, next);
-      return;
+    if (authFlow != null) {
+      const handler = req.app.get("authFlows")[authFlow.handlerName] as AuthFlowCallback;
+      if (handler != null) {
+        handler(authFlow, req, res, next);
+        return;
+      }
     }
-  }
-  res.redirect("/");
+    res.redirect("/");
+  };
 }
