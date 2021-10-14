@@ -1,4 +1,4 @@
-import { Datastore } from "./datastore";
+import { AuthFlowStore, ChannelStore } from "./datastore";
 import { AuthFlow } from "./models";
 import { AuthFlowCallback, ProfileToIdFunc } from "./types";
 const express = require("express");
@@ -58,7 +58,7 @@ export function ensureLogin(configs?: any): (req: any, res: any, next: any) => v
 /**
  * This method creates a callback function that passport accepts for verifying a callback from the login provider.
  */
-export function defaultVerifyCallback(datastore: Datastore, configs?: any): any {
+export function defaultVerifyCallback(datastore: ChannelStore, configs?: any): any {
   configs = configs || {};
   const profileToId: ProfileToIdFunc | null = configs.profileToId || null;
   return async function (req: any, accessToken: string, refreshToken: string, params: any, profile: any, done: any) {
@@ -87,7 +87,7 @@ export function defaultVerifyCallback(datastore: Datastore, configs?: any): any 
   };
 }
 
-export async function kickOffAuth(datastore: Datastore, authFlow: AuthFlow): Promise<string> {
+export async function kickOffAuth(datastore: AuthFlowStore, authFlow: AuthFlow): Promise<string> {
   authFlow = await datastore.saveAuthFlow(authFlow);
   return `/auth/${authFlow.provider}/?authFlow=${authFlow.id}`;
 }
@@ -99,7 +99,7 @@ export async function kickOffAuth(datastore: Datastore, authFlow: AuthFlow): Pro
  * Typically in the calling application under a common auth prefix (eg /auth/)
  * differnet provider routers can be used eg /auth/google/, /auth/facebook/, /auth/github etc.
  */
-export function createProviderRouter(datastore: Datastore, provider: string, config: any = {}): any {
+export function createProviderRouter(datastore: AuthFlowStore, provider: string, config: any = {}): any {
   const router = express.Router();
   const failureRedirectURL = config.failureRedirectURL || `/${config.authPrefix || "auth"}/${provider}/fail`;
   router.get(
@@ -165,7 +165,7 @@ export function createProviderRouter(datastore: Datastore, provider: string, con
  *
  * Other auth flows can be registered via authflows.authFlows dictionary in the client app.
  */
-export function continueAuthFlow(datastore: Datastore): (req: any, res: any, next: any) => Promise<void> {
+export function continueAuthFlow(datastore: AuthFlowStore): (req: any, res: any, next: any) => Promise<void> {
   // Successful authentication, redirect success.
   return async (req: any, res: any, next: any): Promise<void> => {
     const authFlowId = req.query["state"].trim();

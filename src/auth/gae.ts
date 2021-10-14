@@ -1,207 +1,44 @@
+import { Query } from "@google-cloud/datastore";
 import { Datastore as BaseDatastore } from "../dal/datastore";
-import { Datastore as DSInterface } from "./datastore";
-import { User, Channel, AuthFlow } from "./models";
+import { UserStore as UserDSInterface } from "./datastore";
+import { ChannelStore as ChannelDSInterface } from "./datastore";
+import { IdentityStore as IdentityDSInterface } from "./datastore";
+import { AuthFlowStore as AuthFlowDSInterface } from "./datastore";
+import { AuthFlow, Channel, Identity, User } from "./models";
 
-const USER_KIND = "User";
-const CHANNEL_KIND = "Channel";
-const AUTH_FLOW_KIND = "AuthFlow";
-
-export class Datastore extends BaseDatastore implements DSInterface {
-  private static instance: Datastore = new Datastore();
-  static getInstance(): Datastore {
-    return Datastore.instance;
-  }
-
-  async getUsers(offset = 0, count = 100): Promise<User[]> {
-    let query = this.gcds.createQuery(USER_KIND);
-    query = query.offset(offset);
-    query = query.limit(count);
-    const results = await this.gcds.runQuery(query);
-    if (results && results.length > 0 && results[0].length > 0) {
-      const users = results[0].map(this.toUser);
-      return users;
-    }
-    return [];
-  }
-
-  async getChannelByKey(key: string): Promise<Channel | null> {
-    const [provider, loginId] = key.split(":");
-    return this.getChannel(provider, loginId);
-  }
-
-  async getChannel(provider: string, loginId: string): Promise<Channel | null> {
-    const query = this.gcds.createQuery(CHANNEL_KIND).filter("provider", provider).filter("loginId", loginId);
-    const results = await this.gcds.runQuery(query);
-    if (results && results.length > 0 && results[0].length > 0) {
-      const channel = results[0][0];
-      return this.toChannel(channel);
-    }
-    return null;
-  }
-
-  async getUserByChannel(channelKey: string): Promise<User | null> {
-    const query = this.gcds.createQuery(USER_KIND).filter("channelKey", channelKey);
-    const results = await this.gcds.runQuery(query);
-    if (results && results.length > 0 && results[0].length > 0) {
-      const user = results[0][0];
-      return this.toUser(user);
-    }
-    return null;
-  }
-
-  async getUserById(userId: string): Promise<User | null> {
-    const query = this.gcds.createQuery(USER_KIND).filter("id", userId);
-    const results = await this.gcds.runQuery(query);
-    if (results && results.length > 0 && results[0].length > 0) {
-      const user = results[0][0];
-      return this.toUser(user);
-    }
-    return null;
-  }
+export class AuthFlowStore extends BaseDatastore<AuthFlow> implements AuthFlowDSInterface {
+  readonly kind = "AuthFlow";
 
   async getAuthFlowById(authFlowId: string): Promise<AuthFlow | null> {
-    const query = this.gcds.createQuery(AUTH_FLOW_KIND).filter("id", authFlowId);
-    const results = await this.gcds.runQuery(query);
-    if (results && results.length > 0 && results[0].length > 0) {
-      const authFlow = results[0][0];
-      return this.toAuthFlow(authFlow);
-    }
-    return null;
+    return await this.getByKey(authFlowId);
+  }
+
+  createGetByKeyQuery(key: string): Query {
+    return this.gcds.createQuery(this.kind).filter("id", key);
   }
 
   async deleteAuthFlowById(authFlowId: string): Promise<boolean> {
-    await this.gcds.delete({
-      key: this.gcds.key([AUTH_FLOW_KIND, authFlowId]),
-    });
-    return true;
-  }
-
-  async saveChannel(channel: Channel): Promise<Channel> {
-    const dbChannel = this.toDBChannel(channel);
-    if (!channel.hasKey) {
-      throw new Error("Invalid channel key: " + channel.key);
-    }
-    const newKey = this.gcds.key([CHANNEL_KIND, channel.key]);
-    await this.gcds.save({
-      key: newKey,
-      data: dbChannel,
-      excludeFromIndexes: ["profile"],
-    });
-    // try getting it to verify
-    return channel;
-  }
-
-  async saveUser(user?: User): Promise<User> {
-    // TODO - use an ID gen if id is not provided?
-    user = user || new User();
-    let dbUser = this.toDBUser(user);
-    const newKey = this.gcds.key(USER_KIND);
-    if (!user.hasKey) {
-      await this.gcds.save({
-        key: newKey,
-        data: dbUser,
-      });
-      if (!newKey.id) {
-        throw new Error("User key is invalid.  Save failed.");
-      }
-      user.id = newKey.id;
-      dbUser = this.toDBUser(user);
-    } else {
-      newKey.id = user.id;
-    }
-
-    // Now update with the
-    await this.gcds.upsert({
-      key: newKey,
-      data: dbUser,
-    });
-    return user;
+    return await this.deleteByKey(authFlowId);
   }
 
   /**
    * Creates a new auth session object to track a login request.
    */
   async saveAuthFlow(authFlow?: AuthFlow): Promise<AuthFlow> {
-    authFlow = authFlow || new AuthFlow();
-    let dbAuthFlow = this.toDBAuthFlow(authFlow);
-    const newKey = this.gcds.key(AUTH_FLOW_KIND);
-    if (!authFlow.hasKey) {
-      await this.gcds.save({
-        key: newKey,
-        data: dbAuthFlow,
-      });
-      if (!newKey.id) {
-        throw new Error("AuthFlow key is invalid.  Save failed.");
-      }
-      authFlow.id = newKey.id;
-      dbAuthFlow = this.toDBAuthFlow(authFlow);
-    } else {
-      newKey.id = authFlow.id;
-    }
-
-    // Now update with the
-    await this.gcds.upsert({
-      key: newKey,
-      data: dbAuthFlow,
-    });
-
-    // try getting it to verify
-    return authFlow;
+    return await this.saveEntity(authFlow || new AuthFlow());
   }
 
-  toUser(dbUser: any): User {
-    return new User({
-      id: dbUser.id,
-      name: dbUser.name,
-      email: dbUser.email,
-      phone: dbUser.phone,
-      channelKey: dbUser.channelKey,
-      isActive: dbUser.isActive,
-      createdAt: dbUser.createdAt,
-      updatedAt: dbUser.updatedAt,
-    });
+  getEntityKey(entity: AuthFlow): string {
+    return entity.id;
+  }
+  setEntityKey(entity: AuthFlow, key: string): void {
+    entity.id = key;
+  }
+  entityHasKey(entity: AuthFlow): boolean {
+    return entity.hasKey;
   }
 
-  toDBUser(user: User): any {
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      channelKey: user.channelKey,
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-  }
-
-  toChannel(dbChannel: any): Channel {
-    return new Channel({
-      provider: dbChannel.provider,
-      loginId: dbChannel.loginId,
-      credentials: dbChannel.credentials,
-      profile: dbChannel.profile,
-      expiresIn: dbChannel.expiresIn,
-      createdAt: dbChannel.createdAt,
-      updatedAt: dbChannel.updatedAt,
-      isActive: dbChannel.isActive,
-    });
-  }
-
-  toDBChannel(channel: Channel): any {
-    return {
-      provider: channel.provider,
-      loginId: channel.loginId,
-      credentials: channel.credentials,
-      profile: channel.profile,
-      expiresIn: channel.expiresIn,
-      createdAt: channel.createdAt,
-      updatedAt: channel.updatedAt,
-      isActive: channel.isActive,
-    };
-  }
-
-  toAuthFlow(dbAuthFlow: any): AuthFlow {
+  fromDBValue(dbAuthFlow: any): AuthFlow {
     return new AuthFlow({
       id: dbAuthFlow.id,
       provider: dbAuthFlow.provider,
@@ -211,7 +48,7 @@ export class Datastore extends BaseDatastore implements DSInterface {
     });
   }
 
-  toDBAuthFlow(authFlow: AuthFlow): any {
+  toDBValue(authFlow: AuthFlow): any {
     return {
       id: authFlow.id,
       provider: authFlow.provider,
@@ -220,8 +57,96 @@ export class Datastore extends BaseDatastore implements DSInterface {
       expiresIn: authFlow.expiresIn,
     };
   }
+}
 
-  // Helper methods
+export class UserStore extends BaseDatastore<User> implements UserDSInterface {
+  readonly kind = "User";
+
+  async getUsers(offset = 0, count = 100): Promise<User[]> {
+    return await this.listEntities(offset, count);
+  }
+
+  async getUserById(userId: string): Promise<User | null> {
+    return await this.getByKey(userId);
+  }
+
+  createGetByKeyQuery(key: string): Query {
+    return this.gcds.createQuery(this.kind).filter("id", key);
+  }
+
+  async saveUser(user?: User): Promise<User> {
+    return await this.saveEntity(user || new User());
+  }
+
+  fromDBValue(dbUser: any): User {
+    return new User({
+      id: dbUser.id,
+      isActive: dbUser.isActive,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt,
+    });
+  }
+
+  /**
+   * Override this to handle customer User types.
+   */
+  toDBValue(user: User): any {
+    return {
+      id: user.id,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  getEntityKey(entity: User): string {
+    return entity.id;
+  }
+  setEntityKey(entity: User, key: string): void {
+    entity.id = key;
+  }
+  entityHasKey(entity: User): boolean {
+    return entity.hasKey;
+  }
+}
+
+export class ChannelStore extends BaseDatastore<Channel> implements ChannelDSInterface {
+  readonly kind = "Channel";
+  get autoCreateKey(): boolean {
+    return false;
+  }
+  getEntityKey(entity: Channel): string {
+    return entity.key;
+  }
+  setEntityKey(entity: Channel, key: string): void {
+    throw new Error(`Cannot set entity key for ${this.kind}`);
+  }
+  entityHasKey(entity: Channel): boolean {
+    return entity.hasKey;
+  }
+
+  createGetByKeyQuery(key: string): Query {
+    const [provider, loginId] = key.split(":");
+    return this.gcds.createQuery(this.kind).filter("provider", provider).filter("loginId", loginId);
+  }
+
+  async getChannel(provider: string, loginId: string): Promise<Channel | null> {
+    const key = provider + ":" + loginId;
+    return this.getChannelByKey(key);
+  }
+
+  async getChannelByKey(key: string): Promise<Channel | null> {
+    return this.getByKey(key);
+  }
+
+  async saveChannel(channel: Channel): Promise<Channel> {
+    return this.saveEntity(channel);
+  }
+
+  getIndexExcludes(entity: Channel): string[] {
+    return ["profile"];
+  }
+
   async ensureChannel(provider: string, loginId: string, params?: any): Promise<[Channel, boolean]> {
     // get channel if exists
     // See if a channel exist - create if it does not
@@ -239,6 +164,121 @@ export class Datastore extends BaseDatastore implements DSInterface {
     return [channel, newCreated];
   }
 
+  fromDBValue(dbChannel: any): Channel {
+    return new Channel({
+      provider: dbChannel.provider,
+      loginId: dbChannel.loginId,
+      credentials: dbChannel.credentials,
+      profile: dbChannel.profile,
+      identityKey: dbChannel.identityKey,
+      expiresIn: dbChannel.expiresIn,
+      createdAt: dbChannel.createdAt,
+      updatedAt: dbChannel.updatedAt,
+      isActive: dbChannel.isActive,
+    });
+  }
+
+  toDBValue(channel: Channel): any {
+    return {
+      provider: channel.provider,
+      loginId: channel.loginId,
+      credentials: channel.credentials,
+      profile: channel.profile,
+      identityKey: channel.identityKey,
+      expiresIn: channel.expiresIn,
+      createdAt: channel.createdAt,
+      updatedAt: channel.updatedAt,
+      isActive: channel.isActive,
+    };
+  }
+}
+
+export class IdentityStore extends BaseDatastore<Identity> implements IdentityDSInterface {
+  readonly kind = "Identity";
+  get autoCreateKey(): boolean {
+    return false;
+  }
+  getEntityKey(entity: Identity): string {
+    return entity.key;
+  }
+  setEntityKey(entity: Identity, key: string): void {
+    throw new Error(`Cannot set entity key for ${this.kind}`);
+  }
+  entityHasKey(entity: Identity): boolean {
+    return entity.hasKey;
+  }
+
+  createGetByKeyQuery(key: string): Query {
+    const [identityType, identityKey] = key.split(":");
+    return this.gcds.createQuery(this.kind).filter("identityType", identityType).filter("identityKey", identityKey);
+  }
+
+  async getIdentity(identityType: string, identityKey: string): Promise<Identity | null> {
+    const key = identityType + ":" + identityKey;
+    return this.getIdentityByKey(key);
+  }
+
+  async getIdentityByKey(key: string): Promise<Identity | null> {
+    return this.getByKey(key);
+  }
+
+  async saveIdentity(identity: Identity): Promise<Identity> {
+    return this.saveEntity(identity);
+  }
+
+  async ensureIdentity(identityType: string, identityKey: string, params?: any): Promise<[Identity, boolean]> {
+    // get identity if exists
+    // See if a identity exist - create if it does not
+    let identity: Identity | null = await this.getIdentity(identityType, identityKey);
+    const newCreated = identity == null;
+    if (identity == null) {
+      identity = new Identity(params);
+      identity.identityType = identityType;
+      identity.identityKey = identityKey;
+      identity.createdAt = Date.now();
+    }
+    identity = await this.saveIdentity(identity);
+    return [identity, newCreated];
+  }
+
+  fromDBValue(dbIdentity: any): Identity {
+    return new Identity({
+      identityType: dbIdentity.identityType,
+      identityKey: dbIdentity.identityKey,
+      createdAt: dbIdentity.createdAt,
+      updatedAt: dbIdentity.updatedAt,
+      isActive: dbIdentity.isActive,
+    });
+  }
+
+  toDBValue(identity: Identity): any {
+    return {
+      identityType: identity.identityType,
+      identityKey: identity.identityKey,
+      createdAt: identity.createdAt,
+      updatedAt: identity.updatedAt,
+      isActive: identity.isActive,
+    };
+  }
+}
+
+/*
+export class Datastore extends BaseDatastore implements DSInterface {
+  private static instance: Datastore = new Datastore();
+  static getInstance(): Datastore {
+    return Datastore.instance;
+  }
+
+  async getUserByChannel(channelKey: string): Promise<User | null> {
+    const query = this.gcds.createQuery(USER_KIND).filter("channelKey", channelKey);
+    const results = await this.gcds.runQuery(query);
+    if (results && results.length > 0 && results[0].length > 0) {
+      const user = results[0][0];
+      return this.toUser(user);
+    }
+    return null;
+  }
+
   async ensureUser(channel: Channel, userParams?: any): Promise<[User, boolean]> {
     userParams = userParams || {};
     let user = await this.getUserByChannel(channel.key);
@@ -253,3 +293,4 @@ export class Datastore extends BaseDatastore implements DSInterface {
     return [user, newCreated];
   }
 }
+ */

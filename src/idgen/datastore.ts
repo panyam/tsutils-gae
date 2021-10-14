@@ -1,7 +1,8 @@
+import { Query } from "@google-cloud/datastore";
 import { Datastore as BaseDatastore } from "../dal/datastore";
 import { ID } from "./models";
 
-export class Datastore extends BaseDatastore {
+export class Datastore extends BaseDatastore<ID> {
   readonly namespace: string;
   readonly generator: () => string;
 
@@ -11,7 +12,7 @@ export class Datastore extends BaseDatastore {
     this.generator = generator;
   }
 
-  get tableName(): string {
+  get kind(): string {
     return "IDGen_" + this.namespace;
   }
 
@@ -19,7 +20,7 @@ export class Datastore extends BaseDatastore {
     let id = "";
     while (true) {
       id = this.generator();
-      const query = this.gcds.createQuery(this.tableName).filter("id", id);
+      const query = this.gcds.createQuery(this.kind).filter("id", id);
       const results = await this.gcds.runQuery(query);
       if (!results || (results.length > 0 && results[0].length == 0)) break;
     }
@@ -32,19 +33,16 @@ export class Datastore extends BaseDatastore {
     return await this.saveId(res);
   }
 
+  createGetByKeyQuery(key: string): Query {
+    return this.gcds.createQuery(this.kind).filter("id", key);
+  }
+
   async getID(id: string): Promise<ID | null> {
-    const query = this.gcds.createQuery(this.tableName).filter("id", id);
-    const results = await this.gcds.runQuery(query);
-    if (results && results.length > 0 && results[0].length > 0) {
-      return this.toId(results[0][0]);
-    }
-    return null;
+    return this.getByKey(id);
   }
 
   async deleteById(id: string): Promise<boolean> {
-    const key = this.gcds.key([this.tableName, id]);
-    await this.gcds.delete(key);
-    return true;
+    return this.deleteByKey(id);
   }
 
   /**
@@ -52,14 +50,14 @@ export class Datastore extends BaseDatastore {
    */
   async saveId(id: ID): Promise<ID> {
     // TODO - use an ID gen if id is not provided?
-    const dbId = this.toDBId(id);
+    const dbId = this.toDBValue(id);
     if (id.id.trim().length == 0) {
       throw new Error("ID objects must have a valid id");
     }
     if (id.ownerId.trim().length == 0) {
       throw new Error("IDs must have a valid ownerId");
     }
-    const newKey = this.gcds.key([this.tableName, id.id]);
+    const newKey = this.gcds.key([this.kind, id.id]);
 
     // Now update with the
     await this.gcds.upsert({
@@ -70,7 +68,7 @@ export class Datastore extends BaseDatastore {
     return id;
   }
 
-  toId(dbId: any): ID {
+  fromDBValue(dbId: any): ID {
     return new ID({
       id: dbId.id,
       ownerId: dbId.ownerId,
@@ -80,7 +78,7 @@ export class Datastore extends BaseDatastore {
     });
   }
 
-  toDBId(id: ID): any {
+  toDBValue(id: ID): any {
     return {
       id: id.id,
       ownerId: id.ownerId,

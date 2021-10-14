@@ -1,29 +1,28 @@
+import { Query } from "@google-cloud/datastore";
 import { Datastore as BaseDatastore } from "../dal/datastore";
 import { Blob } from "./models";
 
-const BLOB_KIND = "Blobs";
-
-export class Datastore extends BaseDatastore {
+export class Datastore extends BaseDatastore<Blob> {
   private static instance: Datastore = new Datastore();
 
   static getInstance(): Datastore {
     return Datastore.instance;
   }
 
+  get kind(): string {
+    return "Blobs";
+  }
+
+  createGetByKeyQuery(key: string): Query {
+    return this.gcds.createQuery(this.kind).filter("id", key);
+  }
+
   async getBlobById(blobId: string): Promise<Blob | null> {
-    const query = this.gcds.createQuery(BLOB_KIND).filter("id", blobId);
-    const results = await this.gcds.runQuery(query);
-    if (results && results.length > 0 && results[0].length > 0) {
-      const blob = results[0][0];
-      return this.toBlob(blob);
-    }
-    return null;
+    return await this.getByKey(blobId);
   }
 
   async deleteBlobById(blobId: string): Promise<boolean> {
-    const key = this.gcds.key([BLOB_KIND, blobId]);
-    await this.gcds.delete(key);
-    return true;
+    return await this.deleteByKey(blobId);
   }
 
   /**
@@ -32,7 +31,7 @@ export class Datastore extends BaseDatastore {
   async saveBlob(blob?: Blob): Promise<Blob> {
     // TODO - use an ID gen if id is not provided?
     blob = blob || new Blob();
-    let dbBlob = this.toDBBlob(blob);
+    let dbBlob = this.toDBValue(blob);
     if (blob.parentType.trim().length == 0) {
       throw new Error("Blobs must have a valid parent type");
     }
@@ -42,7 +41,7 @@ export class Datastore extends BaseDatastore {
     if (blob.userId.trim().length == 0) {
       throw new Error("Blobs must have a valid userId");
     }
-    let newKey = this.gcds.key(BLOB_KIND);
+    let newKey = this.gcds.key(this.kind);
     if (!blob.hasKey) {
       await this.gcds.save({
         key: newKey,
@@ -53,9 +52,9 @@ export class Datastore extends BaseDatastore {
         throw new Error("Blob key is invalid.  Save failed.");
       }
       blob.id = newKey.id;
-      dbBlob = this.toDBBlob(blob);
+      dbBlob = this.toDBValue(blob);
     } else {
-      newKey = this.gcds.key([BLOB_KIND, blob.id]);
+      newKey = this.gcds.key([this.kind, blob.id]);
     }
 
     // Now update with the
@@ -67,7 +66,7 @@ export class Datastore extends BaseDatastore {
     return blob;
   }
 
-  toBlob(dbBlob: any): Blob {
+  fromDBValue(dbBlob: any): Blob {
     return new Blob({
       id: dbBlob.id,
       parentType: dbBlob.parentType,
@@ -77,7 +76,7 @@ export class Datastore extends BaseDatastore {
     });
   }
 
-  toDBBlob(blob: Blob): any {
+  toDBValue(blob: Blob): any {
     return {
       id: blob.id,
       parentId: blob.parentId,
