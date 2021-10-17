@@ -99,11 +99,11 @@ export class UserStore extends BaseDatastore<User> implements UserDSInterface {
   /**
    * Returns the key of a given entity.
    */
-  getEntityKey(entity: AuthFlow): string | null {
+  getEntityKey(entity: User): string | null {
     return entity.hasKey ? entity.id : null;
   }
 
-  setEntityKey(entity: AuthFlow, key: string): void {
+  setEntityKey(entity: User, key: string): void {
     entity.id = key;
   }
 }
