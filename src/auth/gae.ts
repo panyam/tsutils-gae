@@ -143,6 +143,10 @@ export class ChannelStore extends BaseDatastore<Channel> implements ChannelDSInt
     return this.gcds.createQuery(this.kind).filter("provider", provider).filter("loginId", loginId);
   }
 
+  async getChannels(offset = 0, count = 100): Promise<User[]> {
+    return await this.listEntities(offset, count);
+  }
+
   async getChannel(provider: string, loginId: string): Promise<Channel | null> {
     const key = provider + ":" + loginId;
     return this.getChannelByKey(key);
@@ -226,6 +230,10 @@ export class IdentityStore extends BaseDatastore<Identity> implements IdentityDS
   createGetByKeyQuery(key: string): Query {
     const [identityType, identityKey] = key.split(":");
     return this.gcds.createQuery(this.kind).filter("identityType", identityType).filter("identityKey", identityKey);
+  }
+
+  async getIdentities(offset = 0, count = 100): Promise<User[]> {
+    return await this.listEntities(offset, count);
   }
 
   async getIdentity(identityType: string, identityKey: string): Promise<Identity | null> {
