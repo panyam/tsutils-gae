@@ -228,7 +228,6 @@ export class Authenticator {
     done: any,
   ): Promise<void> {
     try {
-      console.log("Verify Callback, Profile: ", req, profile, params);
       // the ID here is specific to what is returned by the channel provider
       const [channelId, identityType, identityKey] = this.identityFromProfile(profile);
       // const authFlow = await datastore.getAuthFlowById(authFlowId);
