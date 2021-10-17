@@ -20,6 +20,7 @@ const wrapAsync =
  * @param next next function
  */
 export function ensureLogin(configs?: any): RequestHandler {
+  configs = configs || {};
   const redirectURL: (req: Request) => string | string = configs.redirectURL || null;
   return wrapAsync(async (req: Request, res: Response, next: any) => {
     if (!req.session.loggedInUser) {
