@@ -18,8 +18,6 @@ describe("Login and Registration Integration Tests", () => {
       //
     };
 
-    //
-    const authFlow = authenticator.ensureAuthFlow();
-    await authenticator.startAuthFlow(authFlow);
+    // const authFlow = authenticator.ensureAuthFlow();
   });
 });
