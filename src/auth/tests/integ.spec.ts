@@ -3,13 +3,7 @@ import { Authenticator } from "../utils";
 
 describe("Login and Registration Integration Tests", () => {
   test("Basic Login", () => {
-    const authenticator = new Authenticator(
-      "facebook",
-      "/auth/facebook",
-      "/auth/facebook/callback/",
-      "/auth/facebook/fail/",
-      ["email", "name"],
-    );
+    const authenticator = new Authenticator("facebook", ["email", "name"]);
     authenticator.authFlowStarted = async (authFlow: AuthFlow, req: any, res: any, next: any) => {
       //
     };

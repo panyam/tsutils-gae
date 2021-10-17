@@ -182,13 +182,7 @@ export class Authenticator {
    */
   continueAuthFlow?: (authFlow: AuthFlow, req: any, res: any, next: any) => Promise<void>;
 
-  constructor(
-    public readonly provider: string,
-    public readonly startUrl: string,
-    public readonly successCallbackURL: string,
-    public readonly failureCallbackURL: string,
-    public scope: string[] = ["email"],
-  ) {}
+  constructor(public readonly provider: string, public scope: string[] = ["email"]) {}
 
   async startAuthFlow(req: Request, res: Response, next: any): Promise<void> {
     const authFlowId = req.query["authFlow"] || null;
