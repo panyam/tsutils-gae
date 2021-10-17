@@ -225,39 +225,34 @@ export class Authenticator {
     refreshToken: string,
     params: any,
     profile: any,
-    done: any,
-  ): Promise<void> {
-    try {
-      // the ID here is specific to what is returned by the channel provider
-      const [channelId, identityType, identityKey] = this.identityFromProfile(profile);
-      // const authFlow = await datastore.getAuthFlowById(authFlowId);
-      // TODO - Use the authFlow.purpose to ensure loginUser is not lost
-      // ensure channel is created
-      const [identity] = await this.identityStore.ensureIdentity(identityType, identityKey);
+  ): Promise<[Channel, Identity]> {
+    // the ID here is specific to what is returned by the channel provider
+    const [channelId, identityType, identityKey] = this.identityFromProfile(profile);
+    // const authFlow = await datastore.getAuthFlowById(authFlowId);
+    // TODO - Use the authFlow.purpose to ensure loginUser is not lost
+    // ensure channel is created
+    const [identity] = await this.identityStore.ensureIdentity(identityType, identityKey);
 
-      const [channel] = await this.channelStore.ensureChannel(profile.provider, channelId, {
-        credentials: {
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        },
-        expiresIn: params["expires_in"] || 0,
-        profile: profile,
-        identityKey: identity.key,
-      });
-      if (!channel.hasIdentity) {
-        channel.identityKey = identity.key;
-        await this.channelStore.saveChannel(channel);
-      }
-
-      if (this.ensuredIdentity) {
-        await this.ensuredIdentity(channel, identity);
-      }
-
-      // Now ensure we also ensure an Identity entry here
-      return done(null, channel);
-    } catch (err) {
-      return done(err, null);
+    const [channel] = await this.channelStore.ensureChannel(profile.provider, channelId, {
+      credentials: {
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      },
+      expiresIn: params["expires_in"] || 0,
+      profile: profile,
+      identityKey: identity.key,
+    });
+    if (!channel.hasIdentity) {
+      channel.identityKey = identity.key;
+      await this.channelStore.saveChannel(channel);
     }
+
+    if (this.ensuredIdentity) {
+      await this.ensuredIdentity(channel, identity);
+    }
+
+    // Now ensure we also ensure an Identity entry here
+    return [channel, identity];
   }
 
   /**
