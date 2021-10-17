@@ -9,6 +9,8 @@ import { AuthFlow, Channel, Identity, User } from "./models";
 export class AuthFlowStore extends BaseDatastore<AuthFlow> implements AuthFlowDSInterface {
   readonly kind = "AuthFlow";
 
+  public static readonly INSTANCE: AuthFlowStore = new AuthFlowStore();
+
   async getAuthFlowById(authFlowId: string): Promise<AuthFlow | null> {
     return await this.getByKey(authFlowId);
   }
@@ -60,6 +62,8 @@ export class AuthFlowStore extends BaseDatastore<AuthFlow> implements AuthFlowDS
 }
 
 export class UserStore extends BaseDatastore<User> implements UserDSInterface {
+  public static readonly INSTANCE: UserStore = new UserStore();
+
   readonly kind = "User";
 
   async getUsers(offset = 0, count = 100): Promise<User[]> {
@@ -111,7 +115,10 @@ export class UserStore extends BaseDatastore<User> implements UserDSInterface {
 }
 
 export class ChannelStore extends BaseDatastore<Channel> implements ChannelDSInterface {
+  public static readonly INSTANCE: ChannelStore = new ChannelStore();
+
   readonly kind = "Channel";
+
   get autoCreateKey(): boolean {
     return false;
   }
@@ -194,6 +201,8 @@ export class ChannelStore extends BaseDatastore<Channel> implements ChannelDSInt
 }
 
 export class IdentityStore extends BaseDatastore<Identity> implements IdentityDSInterface {
+  public static readonly INSTANCE: IdentityStore = new IdentityStore();
+
   readonly kind = "Identity";
   get autoCreateKey(): boolean {
     return false;
