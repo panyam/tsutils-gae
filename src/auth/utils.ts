@@ -96,6 +96,8 @@ export function registerOAuthRouter(
       req.authFlowFailed(req, res, next);
     }
   });
+
+  return router;
 }
 
 /*
