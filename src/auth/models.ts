@@ -55,9 +55,12 @@ export class User extends TSU.DAL.BaseEntity {
   // a particular user.
   id: string;
 
+  profile: any;
+
   constructor(config?: any) {
     super((config = config || {}));
     this.id = config.id || "";
+    this.profile = config.profile || {};
   }
 
   // And others things here

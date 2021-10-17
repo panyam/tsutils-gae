@@ -82,9 +82,14 @@ export class UserStore extends BaseDatastore<User> implements UserDSInterface {
     return await this.saveEntity(user || new User());
   }
 
+  getIndexExcludes(entity: User): string[] {
+    return ["profile"];
+  }
+
   fromDBValue(dbUser: any): User {
     return new User({
       id: dbUser.id,
+      profile: dbUser.profile,
       isActive: dbUser.isActive,
       createdAt: dbUser.createdAt,
       updatedAt: dbUser.updatedAt,
@@ -97,6 +102,7 @@ export class UserStore extends BaseDatastore<User> implements UserDSInterface {
   toDBValue(user: User): any {
     return {
       id: user.id,
+      profile: user.profile,
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -254,6 +260,7 @@ export class IdentityStore extends BaseDatastore<Identity> implements IdentityDS
     return new Identity({
       identityType: dbIdentity.identityType,
       identityKey: dbIdentity.identityKey,
+      primaryUser: dbIdentity.primaryUser,
       createdAt: dbIdentity.createdAt,
       updatedAt: dbIdentity.updatedAt,
       isActive: dbIdentity.isActive,
@@ -264,6 +271,7 @@ export class IdentityStore extends BaseDatastore<Identity> implements IdentityDS
     return {
       identityType: identity.identityType,
       identityKey: identity.identityKey,
+      primaryUser: identity.primaryUser,
       createdAt: identity.createdAt,
       updatedAt: identity.updatedAt,
       isActive: identity.isActive,
