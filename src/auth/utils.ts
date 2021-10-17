@@ -19,13 +19,14 @@ const wrapAsync =
  * @param res Response object
  * @param next next function
  */
-export function ensureLogin(configs?: any): RequestHandler {
-  configs = configs || {};
-  const redirectURL: (req: Request) => string | string = configs.redirectURL || null;
+export function ensureLogin(config?: any): RequestHandler {
+  config = config || {};
+  const redirectURL: (req: Request) => string | string = config.redirectURL || null;
+  const userParamName = config.userParamName || "loggedInUser";
   return wrapAsync(async (req: Request, res: Response, next: any) => {
-    if (!req.session.loggedInUser) {
+    if (!req.session[userParamName]) {
       // Redirect to a login if user not logged in
-      let redirUrl = `/${configs.redirectURLPrefix || "auth"}/login?callbackURL=${encodeURIComponent(req.originalUrl)}`;
+      let redirUrl = `/${config.redirectURLPrefix || "auth"}/login?callbackURL=${encodeURIComponent(req.originalUrl)}`;
       if (redirectURL) {
         if (typeof redirectURL == "string") redirUrl = redirectURL;
         else redirUrl = redirectURL(req);
