@@ -63,28 +63,8 @@ export function registerOAuthRouter(
    */
   router.get(
     successCallbackPrefix,
-    wrapAsync(async (req: Request, res: Response, next: any): Promise<void> => {
-      if (authn.authFlowCredentialsReceived) {
-        return await authn.authFlowCredentialsReceived(req, res, next);
-      } else {
-        // Not implemented
-        res.sendStatus(501);
-      }
-    }),
-    wrapAsync(async (req: Request, res: Response, next: any): Promise<void> => {
-      // Successful authentication, redirect success.
-      const authFlowId = req.query["state"].trim();
-      const authFlow = await authn.authFlowStore.getAuthFlowById(authFlowId);
-
-      // We are done with the AuthFlow so clean it up
-      req.session.authFlowId = null;
-
-      if (authFlow && authn.continueAuthFlow) {
-        await authn.continueAuthFlow(authFlow, req, res, next);
-      } else {
-        res.redirect("/");
-      }
-    }),
+    wrapAsync(authn.handleAuthFlowCredentials.bind(authn)),
+    wrapAsync(authn.authFlowCompleted.bind(authn)),
   );
 
   /**
@@ -147,7 +127,6 @@ export class Authenticator {
   authFlowStore: AuthFlowStore;
   channelStore: ChannelStore;
   identityStore: IdentityStore;
-  handlerFactory: TSU.StringMap<AuthFlowCallback> = {};
 
   /**
    * Step 1. This kicks off the actual auth where credentials can be
@@ -186,8 +165,24 @@ export class Authenticator {
    */
   continueAuthFlow?: (authFlow: AuthFlow, req: any, res: any, next: any) => Promise<void>;
 
-  constructor(public readonly provider: string, public scope: string[] = ["email"]) {}
+  scope: string[];
 
+  constructor(public readonly provider: string, public config?: any) {
+    config = config || {};
+    this.scope = config.scope || ["email", "name"];
+    this.authFlowStarted = config.authFlowStarted;
+    this.authFlowCredentialsReceived = config.authFlowCredentialsReceived;
+    this.identityFromProfile = config.identityFromProfile;
+    this.ensuredIdentity = config.ensuredIdentity;
+    this.continueAuthFlow = config.continueAuthFlow;
+    this.authFlowStore = config.authFlowStore;
+    this.channelStore = config.channelStore;
+    this.identityStore = config.identityStore;
+  }
+
+  /**
+   * Step 1 - Called to initiate the auth flow.
+   */
   async startAuthFlow(req: Request, res: Response, next: any): Promise<void> {
     const authFlowId = req.query["authFlow"] || null;
     const callbackURL = req.query["callbackURL"] || "/";
@@ -207,6 +202,40 @@ export class Authenticator {
         // Not implemented
         res.sendStatus(501);
       }
+    }
+  }
+
+  /**
+   * Step 2. Called by the redirect/callback handler when credentials are provided
+   * either by the user or by the auth provider.
+   */
+  async handleAuthFlowCredentials(req: Request, res: Response, next: any): Promise<void> {
+    if (this.authFlowCredentialsReceived) {
+      return await this.authFlowCredentialsReceived(req, res, next);
+    } else {
+      // Not implemented
+      res.sendStatus(501);
+    }
+  }
+
+  /**
+   * Step 3. After auth is successful this method is called to resume the
+   * auth flow for the original purpose it was kicked off.
+   *
+   * TODO - Is this called before or after the verify callback?
+   */
+  async authFlowCompleted(req: Request, res: Response, next: any): Promise<void> {
+    // Successful authentication, redirect success.
+    const authFlowId = req.query["state"].trim();
+    const authFlow = await this.authFlowStore.getAuthFlowById(authFlowId);
+
+    // We are done with the AuthFlow so clean it up
+    req.session.authFlowId = null;
+
+    if (authFlow && this.continueAuthFlow) {
+      await this.continueAuthFlow(authFlow, req, res, next);
+    } else {
+      res.redirect("/");
     }
   }
 
