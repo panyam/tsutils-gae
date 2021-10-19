@@ -46,11 +46,16 @@ abstract class BaseDatastore<T> {
       this.setEntityKey(entity, key);
     }
     this.entitiesByKey[key] = entity;
+    let updated = false;
     for (let i = 0; i < this.allEntities.length; i++) {
       if (this.getEntityKey(this.allEntities[i]) == key) {
         this.allEntities[i] = entity;
+        updated = true;
         break;
       }
+    }
+    if (!updated) {
+      this.allEntities.push(entity);
     }
 
     // try getting it to verify

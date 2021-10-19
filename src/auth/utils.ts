@@ -165,11 +165,8 @@ export class Authenticator {
    */
   continueAuthFlow?: (authFlow: AuthFlow, req: any, res: any, next: any) => Promise<void>;
 
-  scope: string[];
-
   constructor(public readonly provider: string, public config?: any) {
     config = config || {};
-    this.scope = config.scope || ["email", "name"];
     this.authFlowStarted = config.authFlowStarted;
     this.authFlowCredentialsReceived = config.authFlowCredentialsReceived;
     this.identityFromProfile = config.identityFromProfile;
@@ -219,28 +216,8 @@ export class Authenticator {
   }
 
   /**
-   * Step 3. After auth is successful this method is called to resume the
-   * auth flow for the original purpose it was kicked off.
-   *
-   * TODO - Is this called before or after the verify callback?
-   */
-  async authFlowCompleted(req: Request, res: Response, next: any): Promise<void> {
-    // Successful authentication, redirect success.
-    const authFlowId = req.query["state"].trim();
-    const authFlow = await this.authFlowStore.getAuthFlowById(authFlowId);
-
-    // We are done with the AuthFlow so clean it up
-    req.session.authFlowId = null;
-
-    if (authFlow && this.continueAuthFlow) {
-      await this.continueAuthFlow(authFlow, req, res, next);
-    } else {
-      res.redirect("/");
-    }
-  }
-
-  /**
-   * Method called after a successful auth.
+   * Step 3 - Method called auth has been verified with us receiving the verified
+   * tokens etc.
    *
    * Here a channel is created along from the succeeded auth flow and is an
    * opportunity to extract identities and create users from this flow.
@@ -248,13 +225,7 @@ export class Authenticator {
    * This method is called after authFlowCredentialsReceived by the entity
    * verifying the auth flow credentials.
    */
-  async authFlowVerified(
-    req: Request,
-    accessToken: string,
-    refreshToken: string,
-    params: any,
-    profile: any,
-  ): Promise<[Channel, Identity]> {
+  async authFlowVerified(req: Request, tokens: any, params: any, profile: any): Promise<[Channel, Identity]> {
     // the ID here is specific to what is returned by the channel provider
     const [channelId, identityType, identityKey] = this.identityFromProfile(profile);
     // const authFlow = await datastore.getAuthFlowById(authFlowId);
@@ -262,10 +233,9 @@ export class Authenticator {
     // ensure channel is created
     const [identity] = await this.identityStore.ensureIdentity(identityType, identityKey);
 
-    const [channel] = await this.channelStore.ensureChannel(profile.provider, channelId, {
+    const [channel] = await this.channelStore.ensureChannel(this.provider, channelId, {
       credentials: {
-        accessToken: accessToken,
-        refreshToken: refreshToken,
+        ...(tokens || {}),
       },
       expiresIn: params["expires_in"] || 0,
       profile: profile,
@@ -282,6 +252,25 @@ export class Authenticator {
 
     // Now ensure we also ensure an Identity entry here
     return [channel, identity];
+  }
+
+  /**
+   * Step 4. After auth is successful this method is called to resume the
+   * auth flow for the original purpose it was kicked off.
+   */
+  async authFlowCompleted(req: Request, res: Response, next: any): Promise<void> {
+    // Successful authentication, redirect success.
+    const authFlowId = req.query["state"].trim();
+    const authFlow = await this.authFlowStore.getAuthFlowById(authFlowId);
+
+    // We are done with the AuthFlow so clean it up
+    req.session.authFlowId = null;
+
+    if (authFlow && this.continueAuthFlow) {
+      await this.continueAuthFlow(authFlow, req, res, next);
+    } else {
+      res.redirect("/");
+    }
   }
 
   /**
