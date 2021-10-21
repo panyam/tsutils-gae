@@ -45,9 +45,9 @@ export abstract class Datastore<T> {
   }
 
   async deleteByKey(key: string): Promise<boolean> {
-    await this.gcds.delete({
-      key: this.gcds.key([this.kind, key]),
-    });
+    const dbkey = this.gcds.key([this.kind, key]);
+    console.log("DBKey: ", dbkey);
+    await this.gcds.delete(dbkey);
     return true;
   }
 
