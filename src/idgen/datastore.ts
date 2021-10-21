@@ -30,7 +30,7 @@ export class Datastore extends BaseDatastore<ID> {
       ownerId: ownerId,
       expiresAt: expiresAt,
     });
-    return await this.saveId(res);
+    return await this.saveID(res);
   }
 
   createGetByKeyQuery(key: string): Query {
@@ -41,14 +41,14 @@ export class Datastore extends BaseDatastore<ID> {
     return this.getByKey(id);
   }
 
-  async deleteById(id: string): Promise<boolean> {
+  async deleteID(id: string): Promise<boolean> {
     return this.deleteByKey(id);
   }
 
   /**
-   * Creates a new auth session object to track a login request.
+   * Creates a new ID.
    */
-  async saveId(id: ID): Promise<ID> {
+  async saveID(id: ID): Promise<ID> {
     // TODO - use an ID gen if id is not provided?
     const dbId = this.toDBValue(id);
     if (id.id.trim().length == 0) {
