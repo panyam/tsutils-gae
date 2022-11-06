@@ -24,6 +24,7 @@ export function ensureLogin(config?: any): RequestHandler {
   const redirectURL: (req: Request) => string | string = config.redirectURL || null;
   const userParamName = config.userParamName || "loggedInUser";
   return wrapAsync(async (req: Request, res: Response, next: any) => {
+    console.log("Session value: ", req.session[userParamName]);
     if (!req.session[userParamName]) {
       // Redirect to a login if user not logged in
       let redirUrl = `/${config.redirectURLPrefix || "auth"}/login?callbackURL=${encodeURIComponent(req.originalUrl)}`;
